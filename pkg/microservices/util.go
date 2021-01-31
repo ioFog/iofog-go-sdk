@@ -15,12 +15,14 @@ package microservices
 import (
 	"encoding/binary"
 	"errors"
-	ws "github.com/gorilla/websocket"
+	"fmt"
 	"io"
 	"math"
 	"net"
 	"net/http"
 	"time"
+
+	ws "github.com/gorilla/websocket"
 )
 
 func intToBytesBE(num int) ([]byte, int) {
@@ -56,8 +58,8 @@ func int64ToBytesBE(num int64) ([]byte, int) {
 
 func setCustomPingHandler(conn *ws.Conn) {
 	conn.SetPingHandler(func(message string) error {
-		if message == string(ws.PingMessage) {
-			message = string(ws.PongMessage)
+		if message == fmt.Sprint(ws.PingMessage) {
+			message = fmt.Sprint(ws.PongMessage)
 		}
 		err := conn.WriteControl(ws.PongMessage, []byte(message), time.Now().Add(time.Second))
 		if err == ws.ErrCloseSent {

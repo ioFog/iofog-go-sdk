@@ -16,6 +16,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // GetMicroserviceByName retrieves a microservice information using Controller REST API
@@ -74,7 +75,7 @@ func (clt *Client) CreateMicroservice(request MicroserviceCreateRequest) (*Micro
 	return clt.GetMicroserviceByID(response.UUID)
 }
 
-// GetMicroservicesPerFlow returns a list of microservices in a specific flow using Controller REST API
+// GetMicroservicesPerFlow (DEPRECATED) returns a list of microservices in a specific flow using Controller REST API
 func (clt *Client) GetMicroservicesPerFlow(flowID int) (response *MicroserviceListResponse, err error) {
 	body, err := clt.doRequest("GET", fmt.Sprintf("/microservices?flowId=%d", flowID), nil)
 	if err != nil {
@@ -85,9 +86,20 @@ func (clt *Client) GetMicroservicesPerFlow(flowID int) (response *MicroserviceLi
 	return
 }
 
+// GetMicroservicesByApplication returns a list of microservices in a specific application using Controller REST API
+func (clt *Client) GetMicroservicesByApplication(application string) (response *MicroserviceListResponse, err error) {
+	body, err := clt.doRequest("GET", fmt.Sprintf("/microservices?application=%s", application), nil)
+	if err != nil {
+		return
+	}
+	response = new(MicroserviceListResponse)
+	err = json.Unmarshal(body, response)
+	return
+}
+
 // GetAllMicroservices returns all microservices on the Controller by listing all flows,
 // then getting a list of microservices per flow.
-func (clt *Client) GetAllMicroservices() (response *MicroserviceListResponse, err error) {
+func (clt *Client) getAllMicroservicesDeprecated() (response *MicroserviceListResponse, err error) {
 	flows, err := clt.GetAllFlows()
 	if err != nil {
 		return nil, err
@@ -102,6 +114,24 @@ func (clt *Client) GetAllMicroservices() (response *MicroserviceListResponse, er
 		response.Microservices = append(response.Microservices, listPerFlow.Microservices...)
 	}
 	return
+}
+
+// GetAllMicroservices returns all microservices on the Controller across all (non-system) flows
+func (clt *Client) getAllMicroservices() (response *MicroserviceListResponse, err error) {
+	body, err := clt.doRequest("GET", fmt.Sprintf("/microservices"), nil)
+	if err != nil {
+		return
+	}
+	response = new(MicroserviceListResponse)
+	err = json.Unmarshal(body, response)
+	return
+}
+
+func (clt *Client) GetAllMicroservices() (response *MicroserviceListResponse, err error) {
+	if strings.Contains(clt.status.version, "dev") || clt.status.versionNum >= 202 {
+		return clt.getAllMicroservices()
+	}
+	return clt.getAllMicroservicesDeprecated()
 }
 
 // GetMicroservicePortMapping retrieves a microservice port mappings using Controller REST API

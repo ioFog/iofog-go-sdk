@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // AgentTypeAgentTypeIDDict Map from string agent type to numeric id
@@ -59,7 +60,20 @@ func checkStatusCode(code int, method, url string, body io.Reader) error {
 		if err != nil {
 			return err
 		}
-		return NewHTTPError(fmt.Sprintf("Received %d from %s %s\n%s", code, method, url, bodyString), code)
+		switch code {
+		case 404:
+			return NewNotFoundError(fmt.Sprintf("Received Not found from %s %s\n: %s\n", method, url, bodyString))
+		default:
+			return NewHTTPError(fmt.Sprintf("Received %d from %s %s\n%s", code, method, url, bodyString), code)
+		}
 	}
 	return nil
+}
+
+func before(input, substr string) string {
+	pos := strings.Index(input, substr)
+	if pos == -1 {
+		return input
+	}
+	return input[0:pos]
 }
